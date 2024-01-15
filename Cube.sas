@@ -1,4 +1,4 @@
-/*Échantillonnage équilibré, Méthode du cube*/
+/*Balanced sampling, Cube method*/
 
 
 %macro Time(from);
@@ -242,7 +242,7 @@ returns the elaspsed time from the input time */
 	%let NCons = %eval(%Nvar(_Fflight_cons));
 
 	ods html;
-	/*Phase de vol*/
+	/*Flight phase*/
     proc iml ;
 
 		start flight(Cons) global(prob,roundedProbIndex);
@@ -261,55 +261,55 @@ returns the elaspsed time from the input time */
 	        k=1;
 
 
-	        /*assurer que  A est de plein rang*/
+	        /*Make sure A is full rank*/
 	        call gsorth(P, T, lindep, A);
 	        if lindep =1 then do;
-	           /*La matrice A n est pas de plein rang!*/
-				free A;
-	            A=P[,loc(vecdiag(T)^=0)];
-	            m=ncol(A);
+			/*Matrix A is not full rank*/
+			free A;
+			A=P[,loc(vecdiag(T)^=0)];
+			m=ncol(A);
 	        end;
 	        free P T;
 
 	        do while (i<= n & ^last) ;
 
-	            i=i+1;
-				inclprob[,1] =inclprob[,2];
+			i=i+1;
+			inclprob[,1] =inclprob[,2];
+			
+			/*dÃ©terminer les unitÃ©s Ã  arrondir*/
+			l=(inclprob[,1] =1 |inclprob[,1]=0);
+			W=W# ^l;
+			Wloc=loc(W);
+			nWLoc=sum(W);
 
-	            /*déterminer les unités à arrondir*/
-	            l=(inclprob[,1] =1 |inclprob[,1]=0);
-	            W=W# ^l;
-	            Wloc=loc(W);
-	            nWLoc=sum(W);
-
-	            /*assurer qu il reste des valeurs à arrondir avant de calculer u */
-	            u=J(n,1,0);
-	            if nWLoc > 0 then do;
-					/*le vecteur v est un vecteur unité, un 1 et des 0 ailleur*/
-	                v=J(n,1,0);
-	                v[Wloc[k]]=1;
-	                u=(W#v)-(W#A)*ginv(t(A[Wloc,])*(A[Wloc,]))*t(A[Wloc,])*(v[Wloc]) ;
-	            end;
-	            else do;
-					/*on termine immédiatement et on obtient un vecteur d inclusion partiel pour la phase d atterrissage*/
-	                last=1;
-	            end;
-	            fu = fuzz(sum(abs(u))/n);
+		    /*assurer qu il reste des valeurs Ã  arrondir avant de calculer u */
+		    u=J(n,1,0);
+		    if nWLoc > 0 then do;
+			/*le vecteur v est un vecteur unitÃ©, un 1 et des 0 ailleur*/
+			v=J(n,1,0);
+			v[Wloc[k]]=1;
+			u=(W#v)-(W#A)*ginv(t(A[Wloc,])*(A[Wloc,]))*t(A[Wloc,])*(v[Wloc]) ;
+		    end;
+		    else do;
+			/*on termine immÃ©diatement et on obtient un vecteur d inclusion partiel pour la phase d atterrissage*/
+			last=1;
+		    end;
+		    fu = fuzz(sum(abs(u))/n);
 
 	            /*lorsque u=0 alors il n est plus possible d arrondir */
 	            if (fu=0 & ^last) then do;
 	                if ( /*i< n-m &*/ nWLoc>m) then do;
-	                    /*le vecteur a été mal choisi, choisissons en un autre à la prochaine itération*/
+	                    /*le vecteur a Ã©tÃ© mal choisi, choisissons en un autre Ã  la prochaine itÃ©ration*/
 	                    k=k+1;
 	                    i=i-1;
 	                end;
 	                else do;
-						/*on termine immédiatement et on obtient un vecteur d inclusion partiel pour la phase d atterrissage*/
-						last=1;
+				/*on termine immÃ©diatement et on obtient un vecteur d inclusion partiel pour la phase d atterrissage*/
+				last=1;
 	                end;
 	            end;
 
-	            /*lorsque u différent de 0, alors on applique le vecteur u  */
+	            /*lorsque u diffÃ©rent de 0, alors on applique le vecteur u  */
 	            if fu>0 then do;
 	                k=1;
 	                upos=loc(u>0);
@@ -322,16 +322,15 @@ returns the elaspsed time from the input time */
 	                q = min(lambda2/(lambda1+lambda2),1);
 	                call randgen(lambdaBernVar,'BERN', q);
 
-					inclprob[,2] = fuzz((lambdaBernVar)*(inclprob[,1]+lambda1*u) + (1-lambdaBernVar)*(inclprob[,1]-lambda2*u));
+			inclprob[,2] = fuzz((lambdaBernVar)*(inclprob[,1]+lambda1*u) + (1-lambdaBernVar)*(inclprob[,1]-lambda2*u));
 	            end;
 	        end;
 
-			/* */
+		/* */
 	        prob=inclprob[,2];
-			roundedProbIndex= loc(prob =1 |prob=0);
+		roundedProbIndex= loc(prob =1 |prob=0);
 			
 		finish flight;
-
 
 		/*Initialisation*/
 		CALL RANDSEED( &seed ,0 ) ; 
@@ -341,14 +340,12 @@ returns the elaspsed time from the input time */
 		Index = 1:%eval(&NCons+1);
 		outIncl = J(&Nunits,1,.);
 
-		
-		/*Extraire les premières lignes*/
+		/*Extract first lines*/
 		use &inclProb;
-        read next %eval(&NCons+1) var {prob} into Prob ;
-        use  _Fflight_cons;
-        read next %eval(&NCons+1) var _all_ into cons ;
+	        read next %eval(&NCons+1) var {prob} into Prob ;
+	        use  _Fflight_cons;
+	        read next %eval(&NCons+1) var _all_ into cons ;
 		m= ncol(cons);
-
 
 		%if %upcase(&land) eq OPT %then %do;
 		do while(count<&Nunits);
@@ -356,7 +353,6 @@ returns the elaspsed time from the input time */
 		%if %upcase(&land) eq DROP %then %do;
 		do while(TotalRounded<&Nunits);
 		%end;
-
 			/*file log;
 			put count totalrounded ;*/
 
@@ -364,10 +360,10 @@ returns the elaspsed time from the input time */
 			nrounded = ncol(roundedProbIndex);
 			/*file log;
 			put count nrounded;*/
-			/*mettre à jour l output*/
+			/*mettre Ã  jour l output*/
 			outIncl[index[roundedProbIndex]] = prob[roundedProbIndex];
 
-			/*mettre à jour l input*/
+			/*update input*/
 			if count< &Nunits then do;
 				do i = 1 to nrounded;
 					if count < &Nunits then do;
@@ -377,10 +373,8 @@ returns the elaspsed time from the input time */
 				        read next 1 var {prob} into NewProb ;
 				        use  _Fflight_cons;
 				        read next 1 var _all_ into NewCons ;
-
 						prob[roundedProbIndex[i],1] = NewProb;
 						cons[roundedProbIndex[i],] 	= NewCons;
-
 						index[roundedProbIndex[i]] 	= count;
 					end;
 				end;
@@ -419,7 +413,7 @@ returns the elaspsed time from the input time */
 			call symputx('nconsDrop',nconsDrop);
 		%end;
 
- 		/*Output*/
+ 	/*Output*/
         create &dataOut from outIncl[colname='incl'];
         append from outIncl;
         close &dataOut;
@@ -429,11 +423,10 @@ returns the elaspsed time from the input time */
 
 %mend FastFlight;
 
-
 %macro Flight(inclProb=,consCoef=,DataOut= ,land=drop );
-/*Phase de vol*/
+/*Flight phase*/
     proc iml ;
-		CALL RANDSEED( &seed ,0 ) ; 
+	CALL RANDSEED( &seed ,0 ) ; 
         use &inclProb;
         read all var {prob} into pi0 ;
         use  &ConsCoef;
@@ -454,7 +447,7 @@ returns the elaspsed time from the input time */
         P=pi0;
         k=1;
 
-        /*assurer que  A est de plein rang*/
+        /*Make sure A is full rank*/
         call gsorth(P, T, lindep, A);
         if lindep =1 then do;
            /* print "La matrice A n est pas de plein rang!";*/
@@ -470,13 +463,13 @@ returns the elaspsed time from the input time */
 			put;
 			put current;
 
-            /*déterminer les unités à arrondir*/
+            /*Determine which unit to round*/
             l=(pi[,i-1] =1 | pi[,i-1]=0);
             W=W# ^l;
             Wloc=loc(W);
             nWLoc=sum(W);
 
-            /*assurer qu il reste des valeurs à arrondir avant de calculer u */
+            /*assurer qu il reste des valeurs Ã  arrondir avant de calculer u */
             u=J(n,1,0);
             if nWLoc > 0 then do;
                 v=J(n,1,0);
@@ -496,27 +489,27 @@ returns the elaspsed time from the input time */
             if (fu=0 & ^last) then do;
 
                 if (i< n-m & nWLoc>m) then do;
-                    /*le vecteur a été mal choisi, choisissons en un autre à la prochaine itération*/
+                    /*le vecteur a Ã©tÃ© mal choisi, choisissons en un autre Ã  la prochaine itÃ©ration*/
                     /*print i k nWloc m;*/
                     k=k+1;
                     i=i-1;
                 end;
                 else do;
-					i=i-1;
-					%if &land=drop %then %do;
-	                    /*alors les contraintes sont éliminées une à une*/
-	                    /*print i j;*/
-	                    if j < m then A=A[,1:(m-j)];
-	                    j=j+1;      
-					%end;
-					%else %do;
-						/*on termine immédiatement et on obtient un vecteur d inclusion partiel pour la phase d atterrissage*/
-						last=1;
-					%end;
+			i=i-1;
+			%if &land=drop %then %do;
+				/*alors les contraintes sont Ã©liminÃ©es une Ã  une*/
+				/*print i j;*/
+				if j < m then A=A[,1:(m-j)];
+				j=j+1;      
+			%end;
+			%else %do;
+				/*on termine immÃ©diatement et on obtient un vecteur d inclusion partiel pour la phase d atterrissage*/
+				last=1;
+			%end;
                 end;
             end;
 
-            /*lorsque u différent de 0, alors on applique le vecteur u  */
+            /*lorsque u diffÃ©rent de 0, alors on applique le vecteur u  */
             if fu>0 then do;
                 k=1;
                 upos=loc(u>0);
@@ -535,13 +528,13 @@ returns the elaspsed time from the input time */
 			put current;
         end;
 
-        /*Extraire les colonnes non vides*/
+        /*Extract non-empty columns*/
         pi=pi[,1:i];
         outPi=pi[,i];
         /*AllU=AllU[,1:i];*/
 
         /*Output*/
-		call symputx('nround',j);
+	call symputx('nround',j);
         create &dataOut from outpi[colname='incl'];
         append from outpi;
         close &dataOut;
@@ -558,15 +551,15 @@ returns the elaspsed time from the input time */
 /*
 Ens : File
     unitId
-    (sample1..SampleN): entier 0 ou 1 pour l inclusion dans cet échantillon
+    (sample1..SampleN): integer 0 or 1 for inclusion in this sample
 
 ProbIncl : File
     unitId  :
-    prob    : numeric entre 0 et 1
+    prob    : numeric between 0 and 1
 
 Coef : File
     unitId                  :
-    (var1 .. varN)  : numeric entre 0 et 1
+    (var1 .. varN)  : numeric between 0 and 1
 
 Def : File
     consId      : consId in (var1 .. varN)
@@ -581,12 +574,12 @@ ProbSelOut : File
 
     %local SampList VarList nSamp NbrVar CurSamp CurVar i;
 
-    /*Extrait la liste des noms d'échantillons*/
+    /*Extrait la liste des noms d'Ã©chantillons*/
     %let SampList = %VarNames(&Ens);
     %let SampList = %listReplace(&SampList,search=%scan(&SampList,1),replace=%STR( ));
     %let nSamp = %sysfunc(countw(&SampList,%str( ))); 
 
-    /*Nombre d equations de calibrage*/
+    /*Number of calibration equations*/
     %let VarList = %VarNames(&Coef);
     %let VarList = %listReplace(&VarList,search=%scan(&VarList,1),replace=%STR( ));
     %let NbrVars = %sysfunc(countw(&VarList,%str( ))); 
@@ -604,7 +597,7 @@ ProbSelOut : File
     %end;
 
 
-    /*Sépare les échantillons en différents fichiers*/
+    /*SÃ©pare les Ã©chantillons en diffÃ©rents fichiers*/
     data %do i = 1 %to &nSamp;%scan(&SampList,&i)(keep=unitid %scan(&SampList,&i)) %end; ;
         set &Ens;
     run;
@@ -619,13 +612,13 @@ ProbSelOut : File
         proc sort data=&CurSamp noduprecs; by sampleId;run;
     %end;
 
-    /*Créer le fichier qui décrit l'inclusion des unités dans chaque échantillon*/
+    /*CrÃ©er le fichier qui dÃ©crit l'inclusion des unitÃ©s dans chaque Ã©chantillon*/
     data __UnitSampleIncl__;
         set &Samplist;
     run;
 
 
-    /*Sépare les coefficient en différents fichiers, un pour chaque equation*/
+    /*SÃ©pare les coefficient en diffÃ©rents fichiers, un pour chaque equation*/
     data %do i = 1 %to &nbrVars; %scan(&VarList,&i)(keep=unitid %scan(&VarList,&i)) %end; ;
         set &Coef;
     run;
@@ -640,19 +633,19 @@ ProbSelOut : File
         proc sort data=&CurVar noduprecs; by consId;run;
     %end;
 
-    /*Créer le fichier qui décrit l'inclusion des unités dans chaque échantillon*/
+    /*CrÃ©er le fichier qui dÃ©crit l'inclusion des unitÃ©s dans chaque Ã©chantillon*/
     data __UnitConsCoef__;
         set &Varlist;
     run;
 
 
     /*
-    Résoudre avec proc optmodel.
-    Détermine les probabilités de sélections qui sont telles que les probabilités d'inclusion
-    du 1er ordre résultant sont aussi proche que possible de celles souhaitées.
+    Resolve with optmodel.
+    DÃ©termine les probabilitÃ©s de sÃ©lections qui sont telles que les probabilitÃ©s d'inclusion
+    du 1er ordre rÃ©sultant sont aussi proche que possible de celles souhaitÃ©es.
     */
     proc optmodel PRINTLEVEL=0 ;
-    /*Déclarer les variables*/
+    /*Declare variables*/
      set <&unitIdType> UnitID ;
      set <str> consID ;
      set <str> SampleID;
@@ -665,7 +658,7 @@ ProbSelOut : File
      num bound{consID};
      var ps{SampleID} >=0 <=1;
 
-     /*Lire les données*/
+     /*Read data*/
      read data &Coef into UnitID=[UnitID] ;
      read data &plan into sampleID=[sampleID] ;
      read data __UnitConsCoef__ into UnitConsID=[UnitID consID] coef=coef;
@@ -673,10 +666,10 @@ ProbSelOut : File
      read data &Def into consID=[consID] bound=bound;
      read data &ProbIncl into UnitID=[UnitID] pi=prob;
 
-     /*valeurs par défaut*/
+     /*Default values*/
      for {j in SampleID} ps[j]=1/&nSamp;
 
-     /*Contraintes*/
+     /*Constraints*/
      con Probabilite: sum{i in SampleID}  ps[i]  =1;
      con InclProb{i in UnitID}:  sum{<(i),j> in UnitSampleID } incl[i,j] * ps[j] = pi[i];
 
@@ -710,7 +703,7 @@ PartialSample : File
 
 output
 	plan
-		sampleId prob
+	sampleId prob
 
 	SampleList
 		
@@ -779,7 +772,7 @@ output
 %mend BuildSampPlan;
 
 %macro SelectSample(Plan=,Samples=, seed=, dataOut=);
-/*choix d un échantillon à partir d un plan*/
+/*select a sample from a plan*/
 /*
 Plan : File
     SampleId    : SampleId in (Sample1.. SampleN)
@@ -787,7 +780,7 @@ Plan : File
 
 Samples : File
     unitId              :
-    (Sample1 ..SampleN) : indicateur d inclusion 0 ou 1
+    (Sample1 ..SampleN) : inclusion indicator 0 or 1
 
 dataOut : File
     unitId  :
@@ -850,7 +843,7 @@ ConsCoef : File
     (Var1..VarN):
 
 ConsDef : File
-    consId      : liste des variables contenant les coefficients (Var1..VarN)
+    consId      : list of varaiables containing the coefficients (Var1..VarN)
     type        : string, type in (eq, lt, gt, = , <,>)
     Bound       : numeric
 
@@ -893,14 +886,14 @@ DataOut : File
     %let VarNames = %ListReplace(&VarNames,search=%scan(&varnames,1),replace= %Str());
     %let Nvar = %sysfunc(countw(&varNames,%str( ))); 
 
-    %put Nombre d équations : &Nvar;
-    %put Type d équations   : &types;
-    %put Nombre d unitées   : &Nunits;
+    %put Nombre d Ã©quations : &Nvar;
+    %put Type d Ã©quations   : &types;
+    %put Nombre d unitÃ©es   : &Nunits;
 
     ods html close;
     ods output printTable=constraints;
     proc optmodel PRINTLEVEL=0 ;
-        /*Déclarer les variables*/
+        /*Declare variables*/
         set <&unitIdType> UnitID ;
         %do i=1 %to &Nvar;
             num Coef&i {UnitID};
@@ -910,16 +903,16 @@ DataOut : File
         %end;
         var p{UnitID} >=0 <=1;
 
-        /*Lire les données*/
+        /*Read data*/
         %if (&inclProb ne) %then %do;
             read data &inclProb into unitId=[unitId] initp=prob;
         %end;
         read data &ConsCoef into unitId=[unitId] %do i = 1 %to &Nvar;  Coef&i=%scan(&varNames,&i) %end; ;
 
-        /*valeurs par défaut*/
+        /*default values*/
         for {i in unitID} p[i]=0;
 
-        /*Contraintes*/
+        /*Constraints*/
         %do i=1 %to &NVar;
             con cons&i: sum{i in UnitID}  coef&i[i]*p[i]  %scan(&types,&i) %scan(&bounds,&i,%str( )) %str(;)
         %end;
@@ -949,9 +942,9 @@ DataOut : File
     option &options;
 
     %put;
-    %Put Débuté à  &Start;
-    %put Terminé à %time();
-    %put Durée     %time(&Start);
+    %put Start at &startTime;
+    %put Ended at %Time();
+    %put Duration     %time(&Start);
 %mend Calibration;
 
 %macro Cube(Pop=,
@@ -961,23 +954,23 @@ DataOut : File
 			land=opt,
 			seed=1);
 /*
-Pop		:   unitId prob
+Pop	:   	unitId prob
 
-Pop		:   unitId stratId
+Pop	:   	unitId stratId
 Alloc	:	stratId size
 
-cons	:   unitId var1...<varN>
+cons	:   	unitId var1...<varN>
 
 
-consDef	:   consId type bound
-            tel que consId in {var1...varN}
-            tel que type in (=,eq) pour le moment, plus tard type in (<,<=,=,>,>=) ou (lt,le,eq,gt,ge)
+consDef	:   	consId type bound
+            	such as consId in {var1...varN}
+            	such as type in (=,eq) pour le moment, plus tard type in (<,<=,=,>,>=) ou (lt,le,eq,gt,ge)
 */
 
     %put;
-    %put ----------------;
-    %put Tirage équilibré;
-    %put ----------------;
+    %put -----------------;
+    %put Balanced sampling;
+    %put -----------------;
     %put;
 
     %local startTime options types Nunits VarNames Nvar ConsCoef PopOut nround nconsDrop;
@@ -990,7 +983,7 @@ consDef	:   consId type bound
     ods listing;
 
 	%if (not %sysfunc(exist(&Pop))) %then %do;
-		%put ERROR: Pop= doit être fourni;
+		%put ERROR: Pop= doit Ãªtre fourni;
 		%goto exit;
 	%end;
 	%else %do;
@@ -1026,7 +1019,7 @@ consDef	:   consId type bound
 
 	
 	%if ((&alloc eq )   or  ((&alloc ne ) and (not %sysfunc(exist(&Alloc)))))   and   (not %sysfunc(exist(&cons)) or (&cons eq ))%then %do;
-		%put ERROR: cons= doit être fourni;
+		%put ERROR: cons= doit Ãªtre fourni;
 		%goto exit;
 	%end;
 	%else %do;
@@ -1038,7 +1031,7 @@ consDef	:   consId type bound
 
 
 	/*%if (not %sysfunc(exist(&consDef))) %then %do;
-		%put ERROR: consDef= doit être fourni;
+		%put ERROR: consDef= doit Ãªtre fourni;
 		%goto exit;
 	%end;
 	%else %do;
@@ -1054,7 +1047,7 @@ consDef	:   consId type bound
 		%goto exit;
 	%end;
 	%if (&seed <0) %then %do;
-		%put ERROR: seed doit être plus grand que 0;
+		%put ERROR: seed doit Ãªtre plus grand que 0;
 		%goto exit;
 	%end;
 
@@ -1064,9 +1057,9 @@ consDef	:   consId type bound
 
 	%BuildCons(Pop=&pop, Alloc=&alloc, ConsIn=&cons, consOut=&ConsCoef, PopOut=&popOut);
 
-    /*%let types  = %listData(data=&ConsDef,var=type);*/
+    	/*%let types  = %listData(data=&ConsDef,var=type);*/
 
-	/*transformer le seed*/
+	/*transform seed*/
 	data _null_;
 		call streamInit(&seed);
 		newseed=ceil( rand('uniform')* (10**9) ) ;
@@ -1077,14 +1070,14 @@ consDef	:   consId type bound
     %let VarNames 	= %ListReplace(&VarNames,search=%scan(&varnames,1),replace= %Str());
     %let Nvar	 	= %sysfunc(countw(&varNames,%str( ))); 
 	
-    %put Nombre d équations : &Nvar;
-    %put Nombre d unitées   : &Nunits;
+    %put Nombre d Ã©quations : &Nvar;
+    %put Nombre d unitÃ©es   : &Nunits;
 
 	/*
-	%put Type d équations   : &types;
+	%put Type d Ã©quations   : &types;
 	*/
 
-	/*on mélange les unités pour réduire les problèmes reliés à l imprécision numérique dans la phase de vol*/
+	/*on mÃ©lange les unitÃ©s pour rÃ©duire les problÃ¨mes reliÃ©s Ã  l imprÃ©cision numÃ©rique dans la phase de vol*/
 	data &PopOut;
 		if _N_=1 then do;
 			call streaminit(&seed);
@@ -1099,7 +1092,7 @@ consDef	:   consId type bound
 	proc sort data=&PopOut out=&PopOut( keep= unitId prob)	; by __order;run;
 	proc sort data=&ConsCoef out= &ConsCoef(drop= __order); by __order;run;
 
-    /*Phase de Vol*/
+    	/*Flight phase */
 	/*%Flight(inclProb=&PopOut,consCoef=&ConsCoef,DataOut=&DataOut,land=&land);*/
 	%FastFlight(inclProb=&PopOut,consCoef=&ConsCoef,DataOut=&DataOut,land=&land);
 
@@ -1108,7 +1101,7 @@ consDef	:   consId type bound
         set &dataOut;
     run;
 
-	/*remettre les unités en ordre*/
+	/*remettre les unitÃ©s en ordre*/
 	proc sort data=&PopOut 			; 	by unitId;	run;
 	proc sort data=&ConsCoef 		; 	by unitId;	run; 
 	proc sort data=&DataOut 		; 	by unitId;	run; 
@@ -1127,14 +1120,14 @@ consDef	:   consId type bound
 		if missing(incl) then incl=prob;
 	run;
 
-    /*Phase d atterissage*/
+    	/*Landing Phase*/
 	%if %upcase(&land)=OPT %then %do;
 		%if &nround >0 %then %do;
 	   		%BuildSampPlan(partialSample=__FlightOut,plan=__Plan,SampleList=__SList);
 
 			%put;
 			%put %str(    )Atterissage optimal;
-			%put %str(    )Liste de %Nobs(__Plan) échantillons;
+			%put %str(    )Liste de %Nobs(__Plan) Ã©chantillons;
 			/*%put %str(    )&nround;*/
 			
 		    %SelectSample(Plan=__Plan,Samples=__SList, seed=&seed, dataOut=&DataOut);
@@ -1148,8 +1141,8 @@ consDef	:   consId type bound
 	%end;
 	%if %upcase(&land)=DROP %then %do;
 		%put;
-		%put %str(    )Atterissage par élimination;
-		%put %str(    )&NConsDrop contraintes éliminées;
+		%put %str(    )Atterissage par Ã©limination;
+		%put %str(    )&NConsDrop contraintes Ã©liminÃ©es;
 		data &DataOut(keep=unitId sample);
 	        set __FlightOut(rename=(incl=sample));
 	    run;
@@ -1162,9 +1155,9 @@ consDef	:   consId type bound
     options &options;
 
     %put;
-    %put Débuté  à &startTime;
-    %put Terminé à %Time();
-    /*%put Durée     %Time(&startTime);*/
+    %put Start at &startTime;
+    %put Ended at %Time();
+    /*%put Duration     %Time(&startTime);*/
     %put;
 %mend cube;
 
