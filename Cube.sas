@@ -243,7 +243,7 @@ returns the elaspsed time from the input time */
 
 	ods html;
 	/*Flight phase*/
-    proc iml ;
+    	proc iml ;
 
 		start flight(Cons) global(prob,roundedProbIndex);
 
@@ -469,7 +469,7 @@ returns the elaspsed time from the input time */
             Wloc=loc(W);
             nWLoc=sum(W);
 
-            /*assurer qu il reste des valeurs à arrondir avant de calculer u */
+            /*Make sure there are values to round before calculating u*/
             u=J(n,1,0);
             if nWLoc > 0 then do;
                 v=J(n,1,0);
@@ -497,7 +497,7 @@ returns the elaspsed time from the input time */
                 else do;
 			i=i-1;
 			%if &land=drop %then %do;
-				/*alors les contraintes sont éliminées une à une*/
+				/*Then constaints are eleminated one by one*/
 				/*print i j;*/
 				if j < m then A=A[,1:(m-j)];
 				j=j+1;      
@@ -574,7 +574,7 @@ ProbSelOut : File
 
     %local SampList VarList nSamp NbrVar CurSamp CurVar i;
 
-    /*Extrait la liste des noms d'échantillons*/
+    /*Extract the list of sample names*/
     %let SampList = %VarNames(&Ens);
     %let SampList = %listReplace(&SampList,search=%scan(&SampList,1),replace=%STR( ));
     %let nSamp = %sysfunc(countw(&SampList,%str( ))); 
@@ -597,7 +597,7 @@ ProbSelOut : File
     %end;
 
 
-    /*Sépare les échantillons en différents fichiers*/
+    /*Split samples in different files*/
     data %do i = 1 %to &nSamp;%scan(&SampList,&i)(keep=unitid %scan(&SampList,&i)) %end; ;
         set &Ens;
     run;
@@ -618,7 +618,7 @@ ProbSelOut : File
     run;
 
 
-    /*Sépare les coefficient en différents fichiers, un pour chaque equation*/
+    /*Split coefficients in different files, one for each equation*/
     data %do i = 1 %to &nbrVars; %scan(&VarList,&i)(keep=unitid %scan(&VarList,&i)) %end; ;
         set &Coef;
     run;
@@ -641,8 +641,7 @@ ProbSelOut : File
 
     /*
     Resolve with optmodel.
-    Détermine les probabilités de sélections qui sont telles que les probabilités d'inclusion
-    du 1er ordre résultant sont aussi proche que possible de celles souhaitées.
+    Determine selection probabilities such that 1st order inclusion probability are as close as possible from target.
     */
     proc optmodel PRINTLEVEL=0 ;
     /*Declare variables*/
@@ -704,7 +703,6 @@ PartialSample : File
 output
 	plan
 	sampleId prob
-
 	SampleList
 		
 */
@@ -737,7 +735,7 @@ output
     run;
 	/*%put  __Ens__ %nobs( __Ens__);*/
 
-    /*ajuster les totaux*/
+    /*adjust totals*/
     data __InterCoefProb__;
         merge __Psamp__(in=ina)  &ConsCoef;
         by unitId;
@@ -818,16 +816,16 @@ dataOut : File
 			end;
 		end;
 	run;
-/*
-    data _null_;
-        set __SelectedSample__;
-        call symputx("SelectedSample",sampleId);
-    run;*/
-    data &DataOut(rename=(&SelectedSample=Sample));
-        set &Samples(keep= unitId &SelectedSample);
-    run;
 	/*
-    proc delete data=__SelectedSample__ ;run;
+	data _null_;
+		set __SelectedSample__;
+		call symputx("SelectedSample",sampleId);
+	run;*/
+	data &DataOut(rename=(&SelectedSample=Sample));
+		set &Samples(keep= unitId &SelectedSample);
+	run;
+	/*
+	proc delete data=__SelectedSample__ ;run;
 	*/
 
 %mend SelectSample;
@@ -886,9 +884,9 @@ DataOut : File
     %let VarNames = %ListReplace(&VarNames,search=%scan(&varnames,1),replace= %Str());
     %let Nvar = %sysfunc(countw(&varNames,%str( ))); 
 
-    %put Nombre d équations : &Nvar;
-    %put Type d équations   : &types;
-    %put Nombre d unitées   : &Nunits;
+    %put Number of equations 	: &Nvar;
+    %put Equation type  	: &types;
+    %put Number of units   	: &Nunits;
 
     ods html close;
     ods output printTable=constraints;
