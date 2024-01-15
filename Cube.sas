@@ -981,12 +981,12 @@ consDef	:   	consId type bound
     ods listing;
 
 	%if (not %sysfunc(exist(&Pop))) %then %do;
-		%put ERROR: Pop= doit être fourni;
+		%put ERROR: Pop= must be provided;
 		%goto exit;
 	%end;
 	%else %do;
 		%if %varExist(&Pop, unitId ) eq 0 %then %do;
-			%put ERROR: Pop= doit contenir la variable UNITID ;
+			%put ERROR: Pop= must contain variable UNITID ;
 			%goto exit;
 		%end;
 	%end;
@@ -994,22 +994,22 @@ consDef	:   	consId type bound
 
 	%if (&alloc eq ) %then %do;
 		%if %varExist(&Pop, prob ) eq 0 %then %do;
-			%put ERROR: Pop= doit contenir la variable PROB ;
+			%put ERROR: Pop= must contain variable PROB ;
 			%goto exit;
 		%end;
 	%end;
 	%else %do;
 		%if (not %sysfunc(exist(&Alloc))) %then %do;
-			%put ERROR: Alloc= existe pas;
+			%put ERROR: Alloc= doesnt exist;
 			%goto exit;
 		%end;
 		%else %do;
 			%if %varExist(&Pop, stratId ) eq 0 %then %do;
-				%put ERROR: Pop= doit contenir la variable STRATID ;
+				%put ERROR: Pop= must contain variable STRATID ;
 				%goto exit;
 			%end;
 			%if %varExist(&Alloc, stratId size ) eq 0 %then %do;
-				%put ERROR: Alloc= doit contenir les variables STRATID et SIZE ;
+				%put ERROR: Alloc= must contain variables STRATID and SIZE ;
 				%goto exit;
 			%end;
 		%end;
@@ -1017,41 +1017,40 @@ consDef	:   	consId type bound
 
 	
 	%if ((&alloc eq )   or  ((&alloc ne ) and (not %sysfunc(exist(&Alloc)))))   and   (not %sysfunc(exist(&cons)) or (&cons eq ))%then %do;
-		%put ERROR: cons= doit être fourni;
+		%put ERROR: cons= must be provided;
 		%goto exit;
 	%end;
 	%else %do;
 		%if %varExist(&cons, unitId) eq 0 %then %do;
-			%put ERROR: cons= doit contenir la variable UNITID ;
+			%put ERROR: cons= must contain variable UNITID ;
 			%goto exit;
 		%end;
 	%end;
 
-
 	/*%if (not %sysfunc(exist(&consDef))) %then %do;
-		%put ERROR: consDef= doit être fourni;
+		%put ERROR: consDef= must be provided;
 		%goto exit;
 	%end;
 	%else %do;
 		%if %varExist(&consDef, consId type bound) eq 0 %then %do;
-			%put ERROR: consDef= doit contenir les variables CONSID, TYPE et BOUND ;
+			%put ERROR: consDef= must contain variables CONSID, TYPE and BOUND ;
 			%goto exit;
 		%end;
 	%end;*/
 
 
 	%if (%upcase(&land) ne OPT) and (%upcase(&land) ne DROP) %then %do;
-		%put ERROR: option d atterissage non valide (OPT ou DROP);
+		%put ERROR: Landing option non-valid (OPT or DROP);
 		%goto exit;
 	%end;
 	%if (&seed <0) %then %do;
-		%put ERROR: seed doit être plus grand que 0;
+		%put ERROR: seed must be greater than 0;
 		%goto exit;
 	%end;
 
-	%let Nunits		= %Nobs(&Pop);
+	%let Nunits	= %Nobs(&Pop);
 	%let consCoef 	= __LinCons;
-	%let PopOut		= __Pop;
+	%let PopOut	= __Pop;
 
 	%BuildCons(Pop=&pop, Alloc=&alloc, ConsIn=&cons, consOut=&ConsCoef, PopOut=&popOut);
 
@@ -1064,18 +1063,18 @@ consDef	:   	consId type bound
 		call symputx('seed',newseed) ;
 	run;
 
-    %let VarNames 	= %VarNames(data=&ConsCoef);
-    %let VarNames 	= %ListReplace(&VarNames,search=%scan(&varnames,1),replace= %Str());
-    %let Nvar	 	= %sysfunc(countw(&varNames,%str( ))); 
+	%let VarNames	= %VarNames(data=&ConsCoef);
+	%let VarNames 	= %ListReplace(&VarNames,search=%scan(&varnames,1),replace= %Str());
+	%let Nvar	= %sysfunc(countw(&varNames,%str( ))); 
 	
-    %put Nombre d équations : &Nvar;
-    %put Nombre d unitées   : &Nunits;
+	%put Number of equations: &Nvar;
+	%put Number of units   	: &Nunits;
 
 	/*
-	%put Type d équations   : &types;
+	%put Equations Type 	: &types;
 	*/
 
-	/*on mélange les unités pour réduire les problèmes reliés à l imprécision numérique dans la phase de vol*/
+	/*mix units to reduce issues from numerical innacuracies durang flight phase*/
 	data &PopOut;
 		if _N_=1 then do;
 			call streaminit(&seed);
@@ -1094,19 +1093,19 @@ consDef	:   	consId type bound
 	/*%Flight(inclProb=&PopOut,consCoef=&ConsCoef,DataOut=&DataOut,land=&land);*/
 	%FastFlight(inclProb=&PopOut,consCoef=&ConsCoef,DataOut=&DataOut,land=&land);
 
-    data &dataOut(rename=(incl=sample)) __FlightOut ;
-        set &PopOut(keep=unitid) ;
-        set &dataOut;
-    run;
+	data &dataOut(rename=(incl=sample)) __FlightOut ;
+		set &PopOut(keep=unitid) ;
+		set &dataOut;
+	run;
 
-	/*remettre les unités en ordre*/
-	proc sort data=&PopOut 			; 	by unitId;	run;
-	proc sort data=&ConsCoef 		; 	by unitId;	run; 
-	proc sort data=&DataOut 		; 	by unitId;	run; 
+	/*Put units back in order*/
+	proc sort data=&PopOut 		; 	by unitId;	run;
+	proc sort data=&ConsCoef 	; 	by unitId;	run; 
+	proc sort data=&DataOut 	; 	by unitId;	run; 
 	proc sort data=__FlightOut  	; 	by unitId;	run; 
 
 
-	/*compter les valeurs non arrondies*/
+	/*Count non-rounded values*/
 	%let nround=0;
 	data _null_;
 		set __FlightOut(where=(incl > 0 and incl <1 or missing(incl)))  end = eof;
@@ -1124,8 +1123,8 @@ consDef	:   	consId type bound
 	   		%BuildSampPlan(partialSample=__FlightOut,plan=__Plan,SampleList=__SList);
 
 			%put;
-			%put %str(    )Atterissage optimal;
-			%put %str(    )Liste de %Nobs(__Plan) échantillons;
+			%put %str(    )Optimal landing;
+			%put %str(    )List of %Nobs(__Plan) samples;
 			/*%put %str(    )&nround;*/
 			
 		    %SelectSample(Plan=__Plan,Samples=__SList, seed=&seed, dataOut=&DataOut);
@@ -1139,8 +1138,8 @@ consDef	:   	consId type bound
 	%end;
 	%if %upcase(&land)=DROP %then %do;
 		%put;
-		%put %str(    )Atterissage par élimination;
-		%put %str(    )&NConsDrop contraintes éliminées;
+		%put %str(    )Landing by elemination;
+		%put %str(    )&NConsDrop constraints eleminated;
 		data &DataOut(keep=unitId sample);
 	        set __FlightOut(rename=(incl=sample));
 	    run;
