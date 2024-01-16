@@ -1,7 +1,7 @@
 
 
 # Macro Cube
-The macro perform a balanced sampling of a population based on specified parameters. 
+The macro perform a balanced sampling of a population based on specified parameters. Implements the method described in Deville, J.-C., & Tillé, Y. (2004). Efficient balanced sampling: The cube method. Biometrika, 91(4), 893-9121
 
 ## Syntax:
 
